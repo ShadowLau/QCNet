@@ -93,8 +93,9 @@ class ArgoverseV2Dataset(Dataset):
             raw_dir = os.path.join(root, split, 'raw')
             self._raw_dir = raw_dir
             if os.path.isdir(self._raw_dir):
-                self._raw_file_names = [name for name in os.listdir(self._raw_dir) if
-                                        os.path.isdir(os.path.join(self._raw_dir, name))]
+                self._raw_file_names = os.listdir(self._raw_dir)
+                # self._raw_file_names = [name for name in os.listdir(self._raw_dir) if
+                #                         os.path.isdir(os.path.join(self._raw_dir, name))]
                 self._raw_file_names = self._raw_file_names[::sample_interval]
             else:
                 self._raw_file_names = []
@@ -102,8 +103,9 @@ class ArgoverseV2Dataset(Dataset):
             raw_dir = os.path.expanduser(os.path.normpath(raw_dir))
             self._raw_dir = raw_dir
             if os.path.isdir(self._raw_dir):
-                self._raw_file_names = [name for name in os.listdir(self._raw_dir) if
-                                        os.path.isdir(os.path.join(self._raw_dir, name))]
+                self._raw_file_names = os.listdir(self._raw_dir)
+                # self._raw_file_names = [name for name in os.listdir(self._raw_dir) if
+                #                         os.path.isdir(os.path.join(self._raw_dir, name))]
                 self._raw_file_names = self._raw_file_names[::sample_interval]
             else:
                 self._raw_file_names = []
@@ -112,9 +114,10 @@ class ArgoverseV2Dataset(Dataset):
             processed_dir = os.path.join(root, split, 'processed')
             self._processed_dir = processed_dir
             if os.path.isdir(self._processed_dir):
-                self._processed_file_names = [name for name in os.listdir(self._processed_dir) if
-                                              os.path.isfile(os.path.join(self._processed_dir, name)) and
-                                              name.endswith(('pkl', 'pickle'))]
+                self._processed_file_names = os.listdir(self._processed_dir)
+                # self._processed_file_names = [name for name in os.listdir(self._processed_dir) if
+                #                               os.path.isfile(os.path.join(self._processed_dir, name)) and
+                #                               name.endswith(('pkl', 'pickle'))]
                 self._processed_file_names = self._processed_file_names[::sample_interval]
             else:
                 self._processed_file_names = []
@@ -122,9 +125,10 @@ class ArgoverseV2Dataset(Dataset):
             processed_dir = os.path.expanduser(os.path.normpath(processed_dir))
             self._processed_dir = processed_dir
             if os.path.isdir(self._processed_dir):
-                self._processed_file_names = [name for name in os.listdir(self._processed_dir) if
-                                              os.path.isfile(os.path.join(self._processed_dir, name)) and
-                                              name.endswith(('pkl', 'pickle'))]
+                self._processed_file_names = os.listdir(self._processed_dir)
+                # self._processed_file_names = [name for name in os.listdir(self._processed_dir) if
+                #                               os.path.isfile(os.path.join(self._processed_dir, name)) and
+                #                               name.endswith(('pkl', 'pickle'))]
                 self._processed_file_names = self._processed_file_names[::sample_interval]
             else:
                 self._processed_file_names = []

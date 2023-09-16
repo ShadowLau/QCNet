@@ -42,7 +42,7 @@ class QCNetEncoder(nn.Module):
         super(QCNetEncoder, self).__init__()
         self.no_map = no_map
 
-        if not no_map:
+        if not self.no_map:
             self.map_encoder = QCNetMapEncoder(
                 dataset=dataset,
                 input_dim=input_dim,
