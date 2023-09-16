@@ -102,6 +102,7 @@ class QCNet(pl.LightningModule):
         self.T_max = T_max
         self.submission_dir = submission_dir
         self.submission_file_name = submission_file_name
+        self.no_map = kwargs["no_map"]
 
         self.encoder = QCNetEncoder(
             dataset=dataset,
@@ -118,6 +119,7 @@ class QCNet(pl.LightningModule):
             num_heads=num_heads,
             head_dim=head_dim,
             dropout=dropout,
+            no_map=self.no_map
         )
         self.decoder = QCNetDecoder(
             dataset=dataset,
@@ -137,6 +139,7 @@ class QCNet(pl.LightningModule):
             num_heads=num_heads,
             head_dim=head_dim,
             dropout=dropout,
+            no_map=self.no_map
         )
 
         self.reg_loss = NLLLoss(component_distribution=['laplace'] * output_dim + ['von_mises'] * output_head,

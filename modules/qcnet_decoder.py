@@ -51,7 +51,8 @@ class QCNetDecoder(nn.Module):
                  num_layers: int,
                  num_heads: int,
                  head_dim: int,
-                 dropout: float) -> None:
+                 dropout: float,
+                 no_map = False) -> None:
         super(QCNetDecoder, self).__init__()
         self.dataset = dataset
         self.input_dim = input_dim
@@ -70,6 +71,8 @@ class QCNetDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.dropout = dropout
+        
+        self.no_map = no_map
 
         input_dim_r_t = 4
         input_dim_r_pl2m = 3
@@ -146,7 +149,8 @@ class QCNetDecoder(nn.Module):
         head_vector_m = torch.stack([head_m.cos(), head_m.sin()], dim=-1)
 
         x_t = scene_enc['x_a'].reshape(-1, self.hidden_dim)
-        x_pl = scene_enc['x_pl'][:, self.num_historical_steps - 1].repeat(self.num_modes, 1)
+        if not self.no_map:
+            x_pl = scene_enc['x_pl'][:, self.num_historical_steps - 1].repeat(self.num_modes, 1)
         x_a = scene_enc['x_a'][:, -1].repeat(self.num_modes, 1)
         m = self.mode_emb.weight.repeat(scene_enc['x_a'].size(0), 1)
 
@@ -168,26 +172,27 @@ class QCNetDecoder(nn.Module):
         edge_index_t2m = bipartite_dense_to_sparse(mask_src.unsqueeze(2) & mask_dst.unsqueeze(1))
         r_t2m = r_t2m.repeat_interleave(repeats=self.num_modes, dim=0)
 
-        pos_pl = data['map_polygon']['position'][:, :self.input_dim]
-        orient_pl = data['map_polygon']['orientation']
-        edge_index_pl2m = radius(
-            x=pos_m[:, :2],
-            y=pos_pl[:, :2],
-            r=self.pl2m_radius,
-            batch_x=data['agent']['batch'] if isinstance(data, Batch) else None,
-            batch_y=data['map_polygon']['batch'] if isinstance(data, Batch) else None,
-            max_num_neighbors=300)
-        edge_index_pl2m = edge_index_pl2m[:, mask_dst[edge_index_pl2m[1], 0]]
-        rel_pos_pl2m = pos_pl[edge_index_pl2m[0]] - pos_m[edge_index_pl2m[1]]
-        rel_orient_pl2m = wrap_angle(orient_pl[edge_index_pl2m[0]] - head_m[edge_index_pl2m[1]])
-        r_pl2m = torch.stack(
-            [torch.norm(rel_pos_pl2m[:, :2], p=2, dim=-1),
-             angle_between_2d_vectors(ctr_vector=head_vector_m[edge_index_pl2m[1]], nbr_vector=rel_pos_pl2m[:, :2]),
-             rel_orient_pl2m], dim=-1)
-        r_pl2m = self.r_pl2m_emb(continuous_inputs=r_pl2m, categorical_embs=None)
-        edge_index_pl2m = torch.cat([edge_index_pl2m + i * edge_index_pl2m.new_tensor(
-            [[data['map_polygon']['num_nodes']], [data['agent']['num_nodes']]]) for i in range(self.num_modes)], dim=1)
-        r_pl2m = r_pl2m.repeat(self.num_modes, 1)
+        if not self.no_map:
+            pos_pl = data['map_polygon']['position'][:, :self.input_dim]
+            orient_pl = data['map_polygon']['orientation']
+            edge_index_pl2m = radius(
+                x=pos_m[:, :2],
+                y=pos_pl[:, :2],
+                r=self.pl2m_radius,
+                batch_x=data['agent']['batch'] if isinstance(data, Batch) else None,
+                batch_y=data['map_polygon']['batch'] if isinstance(data, Batch) else None,
+                max_num_neighbors=300)
+            edge_index_pl2m = edge_index_pl2m[:, mask_dst[edge_index_pl2m[1], 0]]
+            rel_pos_pl2m = pos_pl[edge_index_pl2m[0]] - pos_m[edge_index_pl2m[1]]
+            rel_orient_pl2m = wrap_angle(orient_pl[edge_index_pl2m[0]] - head_m[edge_index_pl2m[1]])
+            r_pl2m = torch.stack(
+                [torch.norm(rel_pos_pl2m[:, :2], p=2, dim=-1),
+                angle_between_2d_vectors(ctr_vector=head_vector_m[edge_index_pl2m[1]], nbr_vector=rel_pos_pl2m[:, :2]),
+                rel_orient_pl2m], dim=-1)
+            r_pl2m = self.r_pl2m_emb(continuous_inputs=r_pl2m, categorical_embs=None)
+            edge_index_pl2m = torch.cat([edge_index_pl2m + i * edge_index_pl2m.new_tensor(
+                [[data['map_polygon']['num_nodes']], [data['agent']['num_nodes']]]) for i in range(self.num_modes)], dim=1)
+            r_pl2m = r_pl2m.repeat(self.num_modes, 1)
 
         edge_index_a2m = radius_graph(
             x=pos_m[:, :2],
@@ -219,7 +224,8 @@ class QCNetDecoder(nn.Module):
                 m = m.reshape(-1, self.hidden_dim)
                 m = self.t2m_propose_attn_layers[i]((x_t, m), r_t2m, edge_index_t2m)
                 m = m.reshape(-1, self.num_modes, self.hidden_dim).transpose(0, 1).reshape(-1, self.hidden_dim)
-                m = self.pl2m_propose_attn_layers[i]((x_pl, m), r_pl2m, edge_index_pl2m)
+                if not self.no_map:
+                    m = self.pl2m_propose_attn_layers[i]((x_pl, m), r_pl2m, edge_index_pl2m)
                 m = self.a2m_propose_attn_layers[i]((x_a, m), r_a2m, edge_index_a2m)
                 m = m.reshape(self.num_modes, -1, self.hidden_dim).transpose(0, 1).reshape(-1, self.hidden_dim)
             m = self.m2m_propose_attn_layer(m, None, edge_index_m2m)
@@ -256,7 +262,8 @@ class QCNetDecoder(nn.Module):
         for i in range(self.num_layers):
             m = self.t2m_refine_attn_layers[i]((x_t, m), r_t2m, edge_index_t2m)
             m = m.reshape(-1, self.num_modes, self.hidden_dim).transpose(0, 1).reshape(-1, self.hidden_dim)
-            m = self.pl2m_refine_attn_layers[i]((x_pl, m), r_pl2m, edge_index_pl2m)
+            if not self.no_map:
+                m = self.pl2m_refine_attn_layers[i]((x_pl, m), r_pl2m, edge_index_pl2m)
             m = self.a2m_refine_attn_layers[i]((x_a, m), r_a2m, edge_index_a2m)
             m = m.reshape(self.num_modes, -1, self.hidden_dim).transpose(0, 1).reshape(-1, self.hidden_dim)
         m = self.m2m_refine_attn_layer(m, None, edge_index_m2m)

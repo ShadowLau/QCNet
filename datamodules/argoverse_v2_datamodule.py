@@ -40,6 +40,7 @@ class ArgoverseV2DataModule(pl.LightningDataModule):
                  train_transform: Optional[Callable] = TargetBuilder(50, 60),
                  val_transform: Optional[Callable] = TargetBuilder(50, 60),
                  test_transform: Optional[Callable] = None,
+                 sample_interval: int = 0,
                  **kwargs) -> None:
         super(ArgoverseV2DataModule, self).__init__()
         self.root = root
@@ -59,17 +60,18 @@ class ArgoverseV2DataModule(pl.LightningDataModule):
         self.train_transform = train_transform
         self.val_transform = val_transform
         self.test_transform = test_transform
+        self.sample_interval = sample_interval
 
     def prepare_data(self) -> None:
-        ArgoverseV2Dataset(self.root, 'train', self.train_raw_dir, self.train_processed_dir, self.train_transform)
-        ArgoverseV2Dataset(self.root, 'val', self.val_raw_dir, self.val_processed_dir, self.val_transform)
+        ArgoverseV2Dataset(self.root, 'train', self.train_raw_dir, self.train_processed_dir, self.train_transform, self.sample_interval)
+        ArgoverseV2Dataset(self.root, 'val', self.val_raw_dir, self.val_processed_dir, self.val_transform, self.sample_interval)
         ArgoverseV2Dataset(self.root, 'test', self.test_raw_dir, self.test_processed_dir, self.test_transform)
 
     def setup(self, stage: Optional[str] = None) -> None:
         self.train_dataset = ArgoverseV2Dataset(self.root, 'train', self.train_raw_dir, self.train_processed_dir,
-                                                self.train_transform)
+                                                self.train_transform, self.sample_interval)
         self.val_dataset = ArgoverseV2Dataset(self.root, 'val', self.val_raw_dir, self.val_processed_dir,
-                                              self.val_transform)
+                                              self.val_transform, self.sample_interval)
         self.test_dataset = ArgoverseV2Dataset(self.root, 'test', self.test_raw_dir, self.test_processed_dir,
                                                self.test_transform)
 

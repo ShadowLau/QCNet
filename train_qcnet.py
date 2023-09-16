@@ -17,11 +17,14 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.strategies import DDPStrategy
+from lightning.pytorch import loggers as pl_loggers
 
 from datamodules import ArgoverseV2DataModule
 from predictors import QCNet
 
+
 if __name__ == '__main__':
+
     pl.seed_everything(2023, workers=True)
 
     parser = ArgumentParser()
@@ -42,8 +45,15 @@ if __name__ == '__main__':
     parser.add_argument('--accelerator', type=str, default='auto')
     parser.add_argument('--devices', type=int, required=True)
     parser.add_argument('--max_epochs', type=int, default=64)
+    parser.add_argument('--sample_interval', type=int, default=1)
+    parser.add_argument('--exp_name', type=str, default='train')
+    parser.add_argument('--resume_path', type=str, default=None)
+    parser.add_argument('--no_map', action='store_true')
     QCNet.add_model_specific_args(parser)
     args = parser.parse_args()
+
+    log_dir = f'exps/{args.exp_name}'
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir=log_dir)
 
     model = QCNet(**vars(args))
     datamodule = {
@@ -52,6 +62,7 @@ if __name__ == '__main__':
     model_checkpoint = ModelCheckpoint(monitor='val_minFDE', save_top_k=5, mode='min')
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = pl.Trainer(accelerator=args.accelerator, devices=args.devices,
-                         strategy=DDPStrategy(find_unused_parameters=False, gradient_as_bucket_view=True),
-                         callbacks=[model_checkpoint, lr_monitor], max_epochs=args.max_epochs)
-    trainer.fit(model, datamodule)
+                         strategy=DDPStrategy(find_unused_parameters=True, gradient_as_bucket_view=True),
+                         callbacks=[model_checkpoint, lr_monitor], max_epochs=args.max_epochs,
+                         logger=tb_logger)
+    trainer.fit(model, datamodule, ckpt_path=args.resume_path)

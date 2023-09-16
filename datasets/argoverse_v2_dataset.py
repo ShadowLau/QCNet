@@ -76,6 +76,7 @@ class ArgoverseV2Dataset(Dataset):
                  raw_dir: Optional[str] = None,
                  processed_dir: Optional[str] = None,
                  transform: Optional[Callable] = None,
+                 sample_interval = 1,
                  dim: int = 3,
                  num_historical_steps: int = 50,
                  num_future_steps: int = 60,
@@ -94,6 +95,7 @@ class ArgoverseV2Dataset(Dataset):
             if os.path.isdir(self._raw_dir):
                 self._raw_file_names = [name for name in os.listdir(self._raw_dir) if
                                         os.path.isdir(os.path.join(self._raw_dir, name))]
+                self._raw_file_names = self._raw_file_names[::sample_interval]
             else:
                 self._raw_file_names = []
         else:
@@ -102,6 +104,7 @@ class ArgoverseV2Dataset(Dataset):
             if os.path.isdir(self._raw_dir):
                 self._raw_file_names = [name for name in os.listdir(self._raw_dir) if
                                         os.path.isdir(os.path.join(self._raw_dir, name))]
+                self._raw_file_names = self._raw_file_names[::sample_interval]
             else:
                 self._raw_file_names = []
 
@@ -112,6 +115,7 @@ class ArgoverseV2Dataset(Dataset):
                 self._processed_file_names = [name for name in os.listdir(self._processed_dir) if
                                               os.path.isfile(os.path.join(self._processed_dir, name)) and
                                               name.endswith(('pkl', 'pickle'))]
+                self._processed_file_names = self._processed_file_names[::sample_interval]
             else:
                 self._processed_file_names = []
         else:
@@ -121,6 +125,7 @@ class ArgoverseV2Dataset(Dataset):
                 self._processed_file_names = [name for name in os.listdir(self._processed_dir) if
                                               os.path.isfile(os.path.join(self._processed_dir, name)) and
                                               name.endswith(('pkl', 'pickle'))]
+                self._processed_file_names = self._processed_file_names[::sample_interval]
             else:
                 self._processed_file_names = []
 
@@ -131,9 +136,14 @@ class ArgoverseV2Dataset(Dataset):
         self.predict_unseen_agents = predict_unseen_agents
         self.vector_repr = vector_repr
         self._url = f'https://s3.amazonaws.com/argoverse/datasets/av2/tars/motion-forecasting/{split}.tar'
+
+        train_samples = (199908-1) // sample_interval + 1
+        val_samples = (24988-1) // sample_interval + 1
         self._num_samples = {
-            'train': 199908,
-            'val': 24988,
+            'train': train_samples,
+            # 'train': 199908,
+            'val': val_samples,
+            # 'val': 24988,
             'test': 24984,
         }[split]
         self._agent_types = ['vehicle', 'pedestrian', 'motorcyclist', 'cyclist', 'bus', 'static', 'background',
@@ -516,19 +526,21 @@ class ArgoverseV2Dataset(Dataset):
                 (os.path.isdir(self.processed_dir) and len(self.processed_file_names) == len(self))):
             return
         self._processed_file_names = []
-        self.download()
+        print("*" * 80)
+        print("downloading")
+        # self.download()
 
     def _process(self) -> None:
         # if complete processed files exist, skip processing
         if os.path.isdir(self.processed_dir) and len(self.processed_file_names) == len(self):
             return
         print('Processing...', file=sys.stderr)
-        if os.path.isdir(self.processed_dir):
-            for name in os.listdir(self.processed_dir):
-                if name.endswith(('pkl', 'pickle')):
-                    os.remove(os.path.join(self.processed_dir, name))
-        else:
-            os.makedirs(self.processed_dir)
-        self._processed_file_names = [f'{raw_file_name}.pkl' for raw_file_name in self.raw_file_names]
-        self.process()
-        print('Done!', file=sys.stderr)
+        # if os.path.isdir(self.processed_dir):
+        #     for name in os.listdir(self.processed_dir):
+        #         if name.endswith(('pkl', 'pickle')):
+        #             os.remove(os.path.join(self.processed_dir, name))
+        # else:
+        #     os.makedirs(self.processed_dir)
+        # self._processed_file_names = [f'{raw_file_name}.pkl' for raw_file_name in self.raw_file_names]
+        # self.process()
+        # print('Done!', file=sys.stderr)

@@ -111,3 +111,12 @@ venv.bak/
 # seed project
 lightning_logs/
 .DS_Store
+
+
+# weights
+weights/
+
+# training resulst
+lightning_logs/
+exps/
+submission.parquet

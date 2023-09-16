@@ -180,8 +180,8 @@ class QCNetAgentEncoder(nn.Module):
             x_a = self.t_attn_layers[i](x_a, r_t, edge_index_t)
             x_a = x_a.reshape(-1, self.num_historical_steps,
                               self.hidden_dim).transpose(0, 1).reshape(-1, self.hidden_dim)
-            x_a = self.pl2a_attn_layers[i]((map_enc['x_pl'].transpose(0, 1).reshape(-1, self.hidden_dim), x_a), r_pl2a,
-                                           edge_index_pl2a)
+            # x_a = self.pl2a_attn_layers[i]((map_enc['x_pl'].transpose(0, 1).reshape(-1, self.hidden_dim), x_a), r_pl2a,
+            #                                edge_index_pl2a)
             x_a = self.a2a_attn_layers[i](x_a, r_a2a, edge_index_a2a)
             x_a = x_a.reshape(self.num_historical_steps, -1, self.hidden_dim).transpose(0, 1)
 
