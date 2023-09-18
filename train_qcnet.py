@@ -19,7 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.strategies import DDPStrategy
 from lightning.pytorch import loggers as pl_loggers
 
-from datamodules import ArgoverseV2DataModule
+from datamodules import ArgoverseV2DataModule, ArgoverseV1DataModule
 from predictors import QCNet
 
 
@@ -58,6 +58,7 @@ if __name__ == '__main__':
     model = QCNet(**vars(args))
     datamodule = {
         'argoverse_v2': ArgoverseV2DataModule,
+        'argoverse_v1': ArgoverseV1DataModule,
     }[args.dataset](**vars(args))
     model_checkpoint = ModelCheckpoint(monitor='val_minFDE', save_top_k=5, mode='min')
     lr_monitor = LearningRateMonitor(logging_interval='epoch')

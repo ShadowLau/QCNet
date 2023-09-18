@@ -104,6 +104,8 @@ class QCNet(pl.LightningModule):
         self.submission_file_name = submission_file_name
         self.no_map = kwargs["no_map"]
 
+        print("no map?", self.no_map)
+
         self.encoder = QCNetEncoder(
             dataset=dataset,
             input_dim=input_dim,
@@ -259,6 +261,8 @@ class QCNet(pl.LightningModule):
 
         if self.dataset == 'argoverse_v2':
             eval_mask = data['agent']['category'] == 3
+        elif self.dataset == 'argoverse_v1':
+            eval_mask = data['agent']['category'] == 2
         else:
             raise ValueError('{} is not a valid dataset'.format(self.dataset))
         valid_mask_eval = reg_mask[eval_mask]
@@ -306,6 +310,8 @@ class QCNet(pl.LightningModule):
         pi = pred['pi']
         if self.dataset == 'argoverse_v2':
             eval_mask = data['agent']['category'] == 3
+        elif self.dataset == 'argoverse_v1':
+            eval_mask = data['agent']['category'] == 2
         else:
             raise ValueError('{} is not a valid dataset'.format(self.dataset))
         origin_eval = data['agent']['position'][eval_mask, self.num_historical_steps - 1]
@@ -322,7 +328,7 @@ class QCNet(pl.LightningModule):
 
         traj_eval = traj_eval.cpu().numpy()
         pi_eval = pi_eval.cpu().numpy()
-        if self.dataset == 'argoverse_v2':
+        if self.dataset == 'argoverse_v2' or self.dataset == 'argoverse_v1':
             eval_id = list(compress(list(chain(*data['agent']['id'])), eval_mask))
             if isinstance(data, Batch):
                 for i in range(data.num_graphs):
@@ -333,7 +339,7 @@ class QCNet(pl.LightningModule):
             raise ValueError('{} is not a valid dataset'.format(self.dataset))
 
     def on_test_end(self):
-        if self.dataset == 'argoverse_v2':
+        if self.dataset == 'argoverse_v2' or self.dataset == 'argoverse_v1':
             ChallengeSubmission(self.test_predictions).to_parquet(
                 Path(self.submission_dir) / f'{self.submission_file_name}.parquet')
         else:

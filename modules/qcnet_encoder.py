@@ -69,6 +69,7 @@ class QCNetEncoder(nn.Module):
             num_heads=num_heads,
             head_dim=head_dim,
             dropout=dropout,
+            no_map=self.no_map
         )
 
     def forward(self, data: HeteroData) -> Dict[str, torch.Tensor]:
