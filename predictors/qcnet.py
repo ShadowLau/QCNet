@@ -34,6 +34,8 @@ from metrics import minFHE
 from modules import QCNetDecoder
 from modules import QCNetEncoder
 
+from metrics import generate_forecasting_h5
+
 try:
     from av2.datasets.motion_forecasting.eval.submission import ChallengeSubmission
 except ImportError:
@@ -157,6 +159,7 @@ class QCNet(pl.LightningModule):
         self.MR = MR(max_guesses=6)
 
         self.test_predictions = dict()
+        self.test_probabilities = dict()
 
     def forward(self, data: HeteroData):
         scene_enc = self.encoder(data)
@@ -328,20 +331,36 @@ class QCNet(pl.LightningModule):
 
         traj_eval = traj_eval.cpu().numpy()
         pi_eval = pi_eval.cpu().numpy()
-        if self.dataset == 'argoverse_v2' or self.dataset == 'argoverse_v1':
+        if self.dataset == 'argoverse_v2':
             eval_id = list(compress(list(chain(*data['agent']['id'])), eval_mask))
             if isinstance(data, Batch):
                 for i in range(data.num_graphs):
                     self.test_predictions[data['scenario_id'][i]] = (pi_eval[i], {eval_id[i]: traj_eval[i]})
             else:
                 self.test_predictions[data['scenario_id']] = (pi_eval[0], {eval_id[0]: traj_eval[0]})
+        elif self.dataset == 'argoverse_v1':
+            eval_id = list(compress(list(chain(*data['agent']['id'])), eval_mask))
+            if isinstance(data, Batch):
+                for i in range(data.num_graphs):
+                    self.test_predictions[int(data['scenario_id'][i])] = traj_eval[i]
+                    self.test_probabilities[int(data['scenario_id'][i])] = pi_eval[i]
+            else:
+                self.test_predictions[int(data['scenario_id'])] = traj_eval[0]
+                self.test_probabilities[int(data['scenario_id'])] = pi_eval[0]
         else:
             raise ValueError('{} is not a valid dataset'.format(self.dataset))
 
     def on_test_end(self):
-        if self.dataset == 'argoverse_v2' or self.dataset == 'argoverse_v1':
+        if self.dataset == 'argoverse_v2':
             ChallengeSubmission(self.test_predictions).to_parquet(
                 Path(self.submission_dir) / f'{self.submission_file_name}.parquet')
+        elif self.dataset == 'argoverse_v1':
+            generate_forecasting_h5(
+                self.test_predictions,
+                self.submission_dir,
+                self.submission_file_name,
+                self.test_probabilities
+            )
         else:
             raise ValueError('{} is not a valid dataset'.format(self.dataset))
 

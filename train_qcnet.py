@@ -65,5 +65,5 @@ if __name__ == '__main__':
     trainer = pl.Trainer(accelerator=args.accelerator, devices=args.devices,
                          strategy=DDPStrategy(find_unused_parameters=True, gradient_as_bucket_view=True),
                          callbacks=[model_checkpoint, lr_monitor], max_epochs=args.max_epochs,
-                         logger=tb_logger)
+                         logger=tb_logger, check_val_every_n_epoch=4)
     trainer.fit(model, datamodule, ckpt_path=args.resume_path)

@@ -80,9 +80,13 @@ class QCNetDecoder(nn.Module):
 
         self.mode_emb = nn.Embedding(num_modes, hidden_dim)
         self.r_t2m_emb = FourierEmbedding(input_dim=input_dim_r_t, hidden_dim=hidden_dim, num_freq_bands=num_freq_bands)
+
         if not self.no_map:
             self.r_pl2m_emb = FourierEmbedding(input_dim=input_dim_r_pl2m, hidden_dim=hidden_dim,
                                             num_freq_bands=num_freq_bands)
+        # self.r_pl2m_emb = FourierEmbedding(input_dim=input_dim_r_pl2m, hidden_dim=hidden_dim,
+        #                                     num_freq_bands=num_freq_bands)
+
         self.r_a2m_emb = FourierEmbedding(input_dim=input_dim_r_a2m, hidden_dim=hidden_dim,
                                           num_freq_bands=num_freq_bands)
         self.y_emb = FourierEmbedding(input_dim=output_dim + output_head, hidden_dim=hidden_dim,
@@ -94,11 +98,17 @@ class QCNetDecoder(nn.Module):
             [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                             bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
         )
+
         if not self.no_map:
             self.pl2m_propose_attn_layers = nn.ModuleList(
                 [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                                 bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
             )
+        # self.pl2m_propose_attn_layers = nn.ModuleList(
+        #         [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
+        #                         bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
+        #     )
+        
         self.a2m_propose_attn_layers = nn.ModuleList(
             [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                             bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
@@ -109,11 +119,17 @@ class QCNetDecoder(nn.Module):
             [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                             bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
         )
+
         if not self.no_map:
             self.pl2m_refine_attn_layers = nn.ModuleList(
                 [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                                 bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
             )
+        # self.pl2m_refine_attn_layers = nn.ModuleList(
+        #         [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
+        #                         bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
+        #     )
+        
         self.a2m_refine_attn_layers = nn.ModuleList(
             [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                             bipartite=True, has_pos_emb=True) for _ in range(num_layers)]

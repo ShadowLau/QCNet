@@ -19,3 +19,4 @@ from metrics.min_fde import minFDE
 from metrics.min_fhe import minFHE
 from metrics.mr import MR
 from metrics.prob_mr import ProbMR
+from metrics.utils import generate_forecasting_h5

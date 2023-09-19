@@ -16,7 +16,7 @@ from argparse import ArgumentParser
 import pytorch_lightning as pl
 from torch_geometric.loader import DataLoader
 
-from datasets import ArgoverseV2Dataset
+from datasets import ArgoverseV2Dataset, ArgoverseV1Dataset
 from predictors import QCNet
 
 if __name__ == '__main__':
@@ -36,9 +36,10 @@ if __name__ == '__main__':
 
     model = {
         'QCNet': QCNet,
-    }[args.model].load_from_checkpoint(checkpoint_path=args.ckpt_path)
+    }[args.model].load_from_checkpoint(checkpoint_path=args.ckpt_path, strict=False)
     test_dataset = {
         'argoverse_v2': ArgoverseV2Dataset,
+        'argoverse_v1': ArgoverseV1Dataset,
     }[model.dataset](root=args.root, split='test')
     dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
                             pin_memory=args.pin_memory, persistent_workers=args.persistent_workers)

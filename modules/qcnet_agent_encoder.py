@@ -63,8 +63,11 @@ class QCNetAgentEncoder(nn.Module):
         if dataset == 'argoverse_v2' or dataset == 'argoverse_v1':
             input_dim_x_a = 4
             input_dim_r_t = 4
+
             if not self.no_map:
                 input_dim_r_pl2a = 3
+            # input_dim_r_pl2a = 3
+
             input_dim_r_a2a = 3
         else:
             raise ValueError('{} is not a valid dataset'.format(dataset))
@@ -77,20 +80,30 @@ class QCNetAgentEncoder(nn.Module):
             raise ValueError('{} is not a valid dataset'.format(dataset))
         self.x_a_emb = FourierEmbedding(input_dim=input_dim_x_a, hidden_dim=hidden_dim, num_freq_bands=num_freq_bands)
         self.r_t_emb = FourierEmbedding(input_dim=input_dim_r_t, hidden_dim=hidden_dim, num_freq_bands=num_freq_bands)
+
         if not self.no_map:
             self.r_pl2a_emb = FourierEmbedding(input_dim=input_dim_r_pl2a, hidden_dim=hidden_dim,
                                             num_freq_bands=num_freq_bands)
+        # self.r_pl2a_emb = FourierEmbedding(input_dim=input_dim_r_pl2a, hidden_dim=hidden_dim,
+        #                                     num_freq_bands=num_freq_bands)
+
         self.r_a2a_emb = FourierEmbedding(input_dim=input_dim_r_a2a, hidden_dim=hidden_dim,
                                           num_freq_bands=num_freq_bands)
         self.t_attn_layers = nn.ModuleList(
             [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                             bipartite=False, has_pos_emb=True) for _ in range(num_layers)]
         )
+
         if not self.no_map:
             self.pl2a_attn_layers = nn.ModuleList(
                 [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                                 bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
             )
+        # self.pl2a_attn_layers = nn.ModuleList(
+        #         [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
+        #                         bipartite=True, has_pos_emb=True) for _ in range(num_layers)]
+        #     )
+
         self.a2a_attn_layers = nn.ModuleList(
             [AttentionLayer(hidden_dim=hidden_dim, num_heads=num_heads, head_dim=head_dim, dropout=dropout,
                             bipartite=False, has_pos_emb=True) for _ in range(num_layers)]

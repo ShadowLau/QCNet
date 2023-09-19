@@ -22,7 +22,7 @@
 
 python train_qcnet.py \
     --root /data/xiaodliu/av1 \
-    --train_batch_size 6 \
+    --train_batch_size 32 \
     --val_batch_size 2 \
     --test_batch_size 2 \
     --devices 1 \
@@ -37,6 +37,6 @@ python train_qcnet.py \
     --num_t2m_steps 30 \
     --pl2m_radius 150 \
     --a2m_radius 150 \
-    --sample_interval 20 \
-    --exp_name av1_5p_no_map \
+    --sample_interval 5 \
+    --exp_name av1_20p_no_map \
     --no_map
