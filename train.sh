@@ -1,4 +1,4 @@
-# python train_qcnet.py \
+# CUDA_VISIBLE_DEVICES=0 python train_qcnet.py \
 #     --root /data/xiaodliu/av2 \
 #     --train_batch_size 6 \
 #     --val_batch_size 2 \
@@ -15,14 +15,17 @@
 #     --num_t2m_steps 30 \
 #     --pl2m_radius 150 \
 #     --a2m_radius 150 \
-#     --sample_interval 5 \
-#     --exp_name train_20p_no_map \
-#     --no_map
+#     --sample_interval 1 \
+#     --exp_name av2_train_100p_no_map \
+#     --no_map \
+#     --max_epochs 32 \
+#     --submission_dir submission/av2 \
+#     --submission_file_name 100p_no_map_e32_bs6 
 
 
-python train_qcnet.py \
-    --root /data/xiaodliu/av1 \
-    --train_batch_size 32 \
+CUDA_VISIBLE_DEVICES=0 python train_qcnet.py \
+    --root ~/data/av1 \
+    --train_batch_size 8 \
     --val_batch_size 2 \
     --test_batch_size 2 \
     --devices 1 \
@@ -37,6 +40,12 @@ python train_qcnet.py \
     --num_t2m_steps 30 \
     --pl2m_radius 150 \
     --a2m_radius 150 \
-    --sample_interval 5 \
-    --exp_name av1_20p_no_map \
-    --no_map
+    --sample_interval 1 \
+    --exp_name av1_100p_no_map_mode32 \
+    --num_workers 8 \
+    --no_map \
+    --data_to_ram \
+    --num_modes 32 \
+    --max_epochs 32 \
+    --submission_dir submission/av1 \
+    --submission_file_name 10p_no_map_e32_bs8_m32

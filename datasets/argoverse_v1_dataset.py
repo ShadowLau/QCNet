@@ -28,6 +28,11 @@ from torch_geometric.data import HeteroData
 from torch_geometric.data import extract_tar
 from tqdm import tqdm
 
+from collections.abc import Sequence
+from torch import Tensor
+IndexType = Union[slice, Tensor, np.ndarray, Sequence]
+from torch_geometric.data.data import BaseData
+
 
 class ArgoverseV1Dataset(Dataset):
 
@@ -38,6 +43,7 @@ class ArgoverseV1Dataset(Dataset):
                  processed_dir: Optional[str] = None,
                  transform: Optional[Callable] = None,
                  sample_interval = 1,
+                 data_to_ram = False,
                  dim: int = 3,
                  num_historical_steps: int = 20,
                  num_future_steps: int = 30,
@@ -101,7 +107,21 @@ class ArgoverseV1Dataset(Dataset):
         }[split]
         self._agent_types = ['vehicle', 'unknown']
         self._agent_categories = ['OTHERS', 'AV', 'AGENT']
+
+        self.data_to_ram = data_to_ram
+
         super(ArgoverseV1Dataset, self).__init__(root=root, transform=transform, pre_transform=None, pre_filter=None)
+
+        if self.data_to_ram:
+            self.loaded_data = []
+            self.load_data_to_ram()
+
+
+    def load_data_to_ram(self):
+        print("loading data to ram...")
+        for file in tqdm(self.processed_paths):
+            with open(file, 'rb') as handle:
+                self.loaded_data.append(HeteroData(pickle.load(handle)))
 
 
     @property
@@ -255,8 +275,34 @@ class ArgoverseV1Dataset(Dataset):
         return self._num_samples
 
     def get(self, idx: int) -> HeteroData:
-        with open(self.processed_paths[idx], 'rb') as handle:
-            return HeteroData(pickle.load(handle))
+        if self.data_to_ram:
+            return self.loaded_data[idx]
+        else:
+            with open(self.processed_paths[idx], 'rb') as handle:
+                return HeteroData(pickle.load(handle))
+
+
+    def __getitem__(
+        self,
+        idx: Union[int, np.integer, IndexType],
+    ) -> Union['Dataset', BaseData]:
+        r"""In case :obj:`idx` is of type integer, will return the data object
+        at index :obj:`idx` (and transforms it in case :obj:`transform` is
+        present).
+        In case :obj:`idx` is a slicing object, *e.g.*, :obj:`[2:5]`, a list, a
+        tuple, or a :obj:`torch.Tensor` or :obj:`np.ndarray` of type long or
+        bool, will return a subset of the dataset at the specified indices."""
+        if (isinstance(idx, (int, np.integer))
+                or (isinstance(idx, Tensor) and idx.dim() == 0)
+                or (isinstance(idx, np.ndarray) and np.isscalar(idx))):
+
+            data = self.get(self.indices()[idx])
+            data = data if self.transform is None else self.transform(data)
+            return data
+
+        else:
+            return self.index_select(idx)
+
 
     def _download(self) -> None:
         # if complete raw/processed files exist, skip downloading
@@ -273,12 +319,12 @@ class ArgoverseV1Dataset(Dataset):
         if os.path.isdir(self.processed_dir) and len(self.processed_file_names) == len(self):
             return
         print('Processing...', file=sys.stderr)
-        if os.path.isdir(self.processed_dir):
-            for name in os.listdir(self.processed_dir):
-                if name.endswith(('pkl', 'pickle')):
-                    os.remove(os.path.join(self.processed_dir, name))
-        else:
-            os.makedirs(self.processed_dir)
-        self._processed_file_names = [f'{raw_file_name}.pkl' for raw_file_name in self.raw_file_names]
-        self.process()
-        print('Done!', file=sys.stderr)
+        # if os.path.isdir(self.processed_dir):
+        #     for name in os.listdir(self.processed_dir):
+        #         if name.endswith(('pkl', 'pickle')):
+        #             os.remove(os.path.join(self.processed_dir, name))
+        # else:
+        #     os.makedirs(self.processed_dir)
+        # self._processed_file_names = [f'{raw_file_name}.pkl' for raw_file_name in self.raw_file_names]
+        # self.process()
+        # print('Done!', file=sys.stderr)

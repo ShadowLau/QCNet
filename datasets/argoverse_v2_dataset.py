@@ -77,6 +77,7 @@ class ArgoverseV2Dataset(Dataset):
                  processed_dir: Optional[str] = None,
                  transform: Optional[Callable] = None,
                  sample_interval = 1,
+                 data_to_ram = False,
                  dim: int = 3,
                  num_historical_steps: int = 50,
                  num_future_steps: int = 60,
@@ -161,7 +162,21 @@ class ArgoverseV2Dataset(Dataset):
                              'NONE', 'UNKNOWN', 'CROSSWALK', 'CENTERLINE']
         self._point_sides = ['LEFT', 'RIGHT', 'CENTER']
         self._polygon_to_polygon_types = ['NONE', 'PRED', 'SUCC', 'LEFT', 'RIGHT']
+
+        self.data_to_ram = data_to_ram
+        
         super(ArgoverseV2Dataset, self).__init__(root=root, transform=transform, pre_transform=None, pre_filter=None)
+
+        if self.data_to_ram:
+            self.loaded_data = []
+            self.load_data_to_ram()
+
+    def load_data_to_ram(self):
+        print("loading data to ram...")
+        for file in tqdm(self.processed_paths):
+            with open(file, 'rb') as handle:
+                self.loaded_data.append(HeteroData(pickle.load(handle)))
+
 
     @property
     def raw_dir(self) -> str:
@@ -521,8 +536,11 @@ class ArgoverseV2Dataset(Dataset):
         return self._num_samples
 
     def get(self, idx: int) -> HeteroData:
-        with open(self.processed_paths[idx], 'rb') as handle:
-            return HeteroData(pickle.load(handle))
+        if self.data_to_ram:
+            return self.loaded_data[idx]
+        else:
+            with open(self.processed_paths[idx], 'rb') as handle:
+                return HeteroData(pickle.load(handle))
 
     def _download(self) -> None:
         # if complete raw/processed files exist, skip downloading

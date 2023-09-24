@@ -40,7 +40,8 @@ class ArgoverseV1DataModule(pl.LightningDataModule):
                  train_transform: Optional[Callable] = TargetBuilder(20, 30),
                  val_transform: Optional[Callable] = TargetBuilder(20, 30),
                  test_transform: Optional[Callable] = None,
-                 sample_interval: int = 0,
+                 sample_interval: int = 1,
+                 data_to_ram: bool = False,
                  **kwargs) -> None:
         super(ArgoverseV1DataModule, self).__init__()
         self.root = root
@@ -61,19 +62,21 @@ class ArgoverseV1DataModule(pl.LightningDataModule):
         self.val_transform = val_transform
         self.test_transform = test_transform
         self.sample_interval = sample_interval
+        self.data_to_ram = data_to_ram
 
     def prepare_data(self) -> None:
-        ArgoverseV1Dataset(self.root, 'train', self.train_raw_dir, self.train_processed_dir, self.train_transform, self.sample_interval)
-        ArgoverseV1Dataset(self.root, 'val', self.val_raw_dir, self.val_processed_dir, self.val_transform, self.sample_interval)
-        ArgoverseV1Dataset(self.root, 'test', self.test_raw_dir, self.test_processed_dir, self.test_transform)
+        pass
+        # ArgoverseV1Dataset(self.root, 'train', self.train_raw_dir, self.train_processed_dir, self.train_transform, self.sample_interval)
+        # ArgoverseV1Dataset(self.root, 'val', self.val_raw_dir, self.val_processed_dir, self.val_transform, self.sample_interval)
+        # ArgoverseV1Dataset(self.root, 'test', self.test_raw_dir, self.test_processed_dir, self.test_transform)
 
     def setup(self, stage: Optional[str] = None) -> None:
         self.train_dataset = ArgoverseV1Dataset(self.root, 'train', self.train_raw_dir, self.train_processed_dir,
-                                                self.train_transform, self.sample_interval)
+                                                self.train_transform, self.sample_interval, data_to_ram=self.data_to_ram)
         self.val_dataset = ArgoverseV1Dataset(self.root, 'val', self.val_raw_dir, self.val_processed_dir,
-                                              self.val_transform, self.sample_interval)
+                                              self.val_transform, self.sample_interval, data_to_ram=self.data_to_ram)
         self.test_dataset = ArgoverseV1Dataset(self.root, 'test', self.test_raw_dir, self.test_processed_dir,
-                                               self.test_transform)
+                                               self.test_transform, data_to_ram=self.data_to_ram)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.train_batch_size, shuffle=self.shuffle,

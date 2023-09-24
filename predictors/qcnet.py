@@ -35,6 +35,7 @@ from modules import QCNetDecoder
 from modules import QCNetEncoder
 
 from metrics import generate_forecasting_h5
+from utils.utils import batch_nms
 
 try:
     from av2.datasets.motion_forecasting.eval.submission import ChallengeSubmission
@@ -173,7 +174,7 @@ class QCNet(pl.LightningModule):
             data['agent']['av_index'] += data['agent']['ptr'][:-1]
         reg_mask = data['agent']['predict_mask'][:, self.num_historical_steps:]
         cls_mask = data['agent']['predict_mask'][:, -1]
-        pred = self(data)
+        pred = self(data) 
         if self.output_head:
             traj_propose = torch.cat([pred['loc_propose_pos'][..., :self.output_dim],
                                       pred['loc_propose_head'],
@@ -279,6 +280,15 @@ class QCNet(pl.LightningModule):
         pi_eval = F.softmax(pi[eval_mask], dim=-1)
         gt_eval = gt[eval_mask]
 
+
+        traj_eval, pi_eval, selected_idxs = batch_nms(
+            pred_trajs=traj_eval, pred_scores=pi_eval,
+            dist_thresh=1.25,
+            num_ret_modes=6
+        )
+        pi_eval = pi_eval / pi_eval.sum(dim=1, keepdim=True)
+
+
         self.Brier.update(pred=traj_eval[..., :self.output_dim], target=gt_eval[..., :self.output_dim], prob=pi_eval,
                           valid_mask=valid_mask_eval)
         self.minADE.update(pred=traj_eval[..., :self.output_dim], target=gt_eval[..., :self.output_dim], prob=pi_eval,
@@ -325,9 +335,30 @@ class QCNet(pl.LightningModule):
         rot_mat[:, 0, 1] = sin
         rot_mat[:, 1, 0] = -sin
         rot_mat[:, 1, 1] = cos
-        traj_eval = torch.matmul(traj_refine[eval_mask, :, :, :2],
-                                 rot_mat.unsqueeze(1)) + origin_eval[:, :2].reshape(-1, 1, 1, 2)
+
+        traj_eval = traj_refine[eval_mask, :, :, :2]
         pi_eval = F.softmax(pi[eval_mask], dim=-1)
+
+        traj_eval, pi_eval, selected_idxs = batch_nms(
+            pred_trajs=traj_eval, pred_scores=pi_eval,
+            dist_thresh=1.25,
+            num_ret_modes=6
+        )
+        pi_eval = pi_eval / pi_eval.sum(dim=1, keepdim=True)
+
+        traj_eval = torch.matmul(traj_eval, rot_mat.unsqueeze(1)) + origin_eval[:, :2].reshape(-1, 1, 1, 2)
+
+
+        # traj_eval = torch.matmul(traj_refine[eval_mask, :, :, :2],
+        #                          rot_mat.unsqueeze(1)) + origin_eval[:, :2].reshape(-1, 1, 1, 2)
+        # pi_eval = F.softmax(pi[eval_mask], dim=-1)
+
+        # traj_eval, pi_eval, selected_idxs = batch_nms(
+        #     pred_trajs=traj_eval, pred_scores=pi_eval,
+        #     dist_thresh=1.25,
+        #     num_ret_modes=6
+        # )
+        # pi_eval = pi_eval / pi_eval.sum(dim=1, keepdim=True)
 
         traj_eval = traj_eval.cpu().numpy()
         pi_eval = pi_eval.cpu().numpy()

@@ -49,8 +49,11 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, default='train')
     parser.add_argument('--resume_path', type=str, default=None)
     parser.add_argument('--no_map', action='store_true')
+    parser.add_argument('--data_to_ram', action='store_true')
     QCNet.add_model_specific_args(parser)
     args = parser.parse_args()
+
+    args.T_max = args.max_epochs
 
     log_dir = f'exps/{args.exp_name}'
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=log_dir)
@@ -63,7 +66,7 @@ if __name__ == '__main__':
     model_checkpoint = ModelCheckpoint(monitor='val_minFDE', save_top_k=5, mode='min')
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     trainer = pl.Trainer(accelerator=args.accelerator, devices=args.devices,
-                         strategy=DDPStrategy(find_unused_parameters=True, gradient_as_bucket_view=True),
+                         strategy=DDPStrategy(find_unused_parameters=False, gradient_as_bucket_view=True),
                          callbacks=[model_checkpoint, lr_monitor], max_epochs=args.max_epochs,
-                         logger=tb_logger, check_val_every_n_epoch=4)
+                         logger=tb_logger, check_val_every_n_epoch=8)
     trainer.fit(model, datamodule, ckpt_path=args.resume_path)

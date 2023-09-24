@@ -41,7 +41,7 @@ if __name__ == '__main__':
     val_dataset = {
         'argoverse_v2': ArgoverseV2Dataset,
         'argoverse_v1': ArgoverseV1Dataset,
-    }[model.dataset](root=args.root, split='val',
+    }[model.dataset](root=args.root, split='val', sample_interval=1,
                      transform=TargetBuilder(model.num_historical_steps, model.num_future_steps))
     dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
                             pin_memory=args.pin_memory, persistent_workers=args.persistent_workers)
